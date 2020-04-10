@@ -1,12 +1,6 @@
 const express = require(`express`);
 const path = require(`path`);
 const fs = require(`fs`);
-// const theDamnArray = require(`./db/db.json`)
-
-// const dbJsonArrDir = path.resolve(__dirname, "db")
-// const dbJsonArrPath = path.join(dbJsonArrDir, "db.json");
-
-// const dbArray = path.join(".db/db.json")
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,9 +12,6 @@ app.use(express.json());
 
 app.use(express.static("public"));
 app.use(express.static("db"));
-
-// const notes = []
-
 
 // HTML routes
 app.get("/", function (request, response) {
@@ -35,39 +26,54 @@ app.get("/notes", function (request, response) {
 app.get("/api/notes", function (request, response) {
     fs.readFile("./db/db.json", "utf8", function (error, data) {
         if (error) {
-            return console.log(error)
+            return response.status(400).send({ success: false })
         }
-        return response.json(data)
+        const parsed = JSON.parse(data);
+        return response.json(parsed)
     })
 });
 
 app.post("/api/notes", function (request, response) {
     const newNote = request.body;
-    // const existingNotes = fs.readFile("./db/db.json", "utf8", function (error, data) {
-    //     if (error) {
-    //         return console.log(error)
-    //     }
-    //     return JSON.parse(data)
-    // })
-    // console.log(existingNotes)
-    // then(function(){
-    fs.writeFileSync("./db/db.json", JSON.stringify([
-        ...JSON.parse(fs.readFileSync("./db/db.json", "utf8")), newNote
-    ]), "utf8");
+    fs.readFile("./db/db.json", "utf8", function (error, data) {
+        if (error) {
+            return response.status(400).send({ success: false })
+        }
+        const existingNotes = JSON.parse(data)
+        const lastNote = existingNotes[existingNotes.length - 1]
+        newNote.id = lastNote.id + 1
+        existingNotes.push(newNote)
+        fs.writeFile("./db/db.json", JSON.stringify(existingNotes), function(error, data) {
+            if (error) {
+                return response.status(400).send({ success: false })
+            }
+            response.status(200).send({ success: true })
+        })
+    })
 });
 
-// app.delete("/api/notes/:id", function(request, response) {
-//     const noteToDelete = request.body;
-//     const idToDelete = noteToDelete.id;
-//     notes.forEach(note => {
-//         if (this.id == idToDelete){
-//             notes.splice(this.id, 1)
-//         }
-//     });
-//     // const noteId = id;
-//     // fs.readFile("/db/db.json")
-//     response.json(notes)
-// });
+app.delete("/api/notes/:id", function(request, response) {
+    const idDelete = parseInt(request.params.id)
+    fs.readFile("./db/db.json", "utf8", function (error, data) {
+        if (error) {
+            return response.status(400).send({ success: false })
+        }
+        const existingNotes = JSON.parse(data)
+
+
+        existingNotes.forEach((note, index) => {
+            if (note.id === idDelete){
+                existingNotes.splice(index,1)
+            }
+        });
+        fs.writeFile("./db/db.json", JSON.stringify(existingNotes), function(error, data) {
+            if (error) {
+                return response.status(400).send({ success: false })
+            }
+            response.status(200).send({ success: true })
+        })
+    })
+});
 
 
 app.listen(PORT, function () {

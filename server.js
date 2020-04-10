@@ -40,8 +40,12 @@ app.post("/api/notes", function (request, response) {
             return response.status(400).send({ success: false })
         }
         const existingNotes = JSON.parse(data)
-        const lastNote = existingNotes[existingNotes.length - 1]
-        newNote.id = lastNote.id + 1
+        if (existingNotes.length === 0) {
+            newNote.id = 1;
+        } else {
+            const lastNote = existingNotes[existingNotes.length - 1]
+            newNote.id = lastNote.id + 1
+        }
         existingNotes.push(newNote)
         fs.writeFile("./db/db.json", JSON.stringify(existingNotes), function(error, data) {
             if (error) {
